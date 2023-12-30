@@ -8,7 +8,7 @@ import (
 	"github.com/fxtlabs/date"
 	"github.com/nathan-osman/go-sunrise"
 
-	"github.com/derhabicht/planning-calendar/config"
+	"github.com/derhabicht/planning-calendar/internal/config"
 )
 
 func computeNearestMonday(d date.Date) date.Date {
