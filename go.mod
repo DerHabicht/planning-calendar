@@ -5,6 +5,7 @@ go 1.21.1
 require (
 	github.com/ag7if/go-files v0.2.1
 	github.com/ag7if/go-latex v0.2.0
+	github.com/ag7if/playing-cards v0.1.1
 	github.com/fxtlabs/date v0.0.0-20150819233934-d9ab6e2a88a9
 	github.com/nathan-osman/go-sunrise v1.1.0
 	github.com/pkg/errors v0.9.1

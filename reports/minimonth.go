@@ -9,52 +9,34 @@ import (
 	"github.com/fxtlabs/date"
 
 	"github.com/derhabicht/planning-calendar/calendar"
+	"github.com/derhabicht/planning-calendar/calendar/doomsday"
+	"github.com/derhabicht/planning-calendar/reports/templates"
 )
 
-const miniCalWeekHeaderTemplate = `W & +M & +T & +W & +H & +F & +S & +U \\`
-
-const miniCalMonthTemplate = `\newcommand{+COMMAND}{\fbox{\begin{minipage}{0.24\textwidth}
-          \centering
-          {\Large\textbf{+MONTH}}\vspace{\baselineskip}
-          \begin{tabularx}{\textwidth}{r|rrrrrrr}
-              \toprule
- 			  +WEEKHEADER
-              \midrule
-              +W1
-              +W2
-              +W3
-              +W4
-              +W5
-              +W6
-          \end{tabularx}
-\end{minipage}}}
-`
-const miniCalWeekTemplate = `+W & +D1 & +D2 & +D3 & +D4 & +D5 & +D6 & +D7 \\`
-
-func generateTemplates(fy int) []miniMonthTemplate {
-	d := date.New(fy-1, time.September, 1)
-	endDate := date.New(fy+2, time.June, 1)
-
-	var templates []miniMonthTemplate
-	for d.Before(endDate) {
-		t := newMiniMonthTemplate(fy, d.Year(), d.Month())
-
-		templates = append(templates, t)
-
-		d = d.AddDate(0, 1, 0)
-	}
-
-	return templates
-}
-
-type miniMonthTemplate struct {
+type Minimonth struct {
 	month        time.Month
 	year         int
 	doomsday     time.Weekday
 	latexCommand string
 }
 
-func newMiniMonthTemplate(fy, year int, month time.Month) miniMonthTemplate {
+func NewMinimonthList(calendar calendar.Calendar) map[date.Date]Minimonth {
+
+	var minimonths map[date.Date]Minimonth
+	endDate := date.New(calendar.FiscalYear()+2, time.June, 1)
+	d := date.New(calendar.FiscalYear()-1, time.September, 1)
+	for d.Before(endDate) {
+		m := NewMinimonth(calendar.FiscalYear(), d.Year(), d.Month())
+
+		minimonths[d] = m
+
+		d = d.AddDate(0, 1, 0)
+	}
+
+	return minimonths
+}
+
+func NewMinimonth(fy, year int, month time.Month) Minimonth {
 	latexCommand := `\mini`
 
 	// Work out the LaTeX command and template keys for the current year/month combo.
@@ -77,74 +59,73 @@ func newMiniMonthTemplate(fy, year int, month time.Month) miniMonthTemplate {
 		// Case 6: Feb-May of FY+2
 		latexCommand = fmt.Sprintf("%ssecondext%s", latexCommand, strings.ToLower(month.String()))
 	} else {
-		return miniMonthTemplate{}
+		return Minimonth{}
 	}
 
-	return miniMonthTemplate{
+	return Minimonth{
 		month:        month,
 		year:         year,
-		doomsday:     calendar.ComputeDoomsday(year),
+		doomsday:     doomsday.ComputeDoomsday(year),
 		latexCommand: latexCommand,
 	}
 }
 
-func (mmt *miniMonthTemplate) generateWeekHeader() string {
-	header := miniCalWeekHeaderTemplate
+func (mm *Minimonth) generateWeekHeader(latex string) string {
+	templ := templates.MinimonthWeekHeaderTemplate
+
 	for i := 0; i < 7; i++ {
 		weekday := time.Weekday(i)
-		weekdayLetter := calendar.WeekdayLetters[weekday]
+		letter := calendar.WeekdayLetter(weekday)
 
-		repl := weekdayLetter
-		if weekday == mmt.doomsday {
-			repl = fmt.Sprintf("\\underline{%s}", weekdayLetter)
+		repl := letter
+		if weekday == mm.doomsday {
+			repl = fmt.Sprintf(`\underline{%s}`, repl)
 		}
 
-		header = strings.Replace(header, fmt.Sprintf("+%s", weekdayLetter), repl, 1)
+		templ = strings.Replace(templ, fmt.Sprintf("+%s", letter), repl, 1)
 	}
 
-	return header
+	latex = strings.Replace(latex, "WEEK_HEADER", templ, 1)
+
+	return latex
 }
 
-func (mmt *miniMonthTemplate) fillWeeks(template string, start date.Date) string {
-	d := start
-	startMonth := d.Month()
+func (mm *Minimonth) generateWeeks(latex string) string {
+	d := date.New(mm.year, mm.month, 1)
 	for week := 1; week <= 6; week++ {
-		wkTemplate := miniCalWeekTemplate
-		if d.Month() == startMonth {
+		templ := templates.MinimonthWeekTemplate
+		if d.Month() == mm.month {
 			_, isoWeek := d.ISOWeek()
-			wkTemplate = strings.Replace(wkTemplate, "+W", strconv.Itoa(isoWeek), 1)
+			templ = strings.Replace(templ, "+W", strconv.Itoa(isoWeek), 1)
 		} else {
-			wkTemplate = strings.Replace(wkTemplate, "+W", "", 1)
+			templ = strings.Replace(templ, "+W", "", 1)
 		}
 		for weekDay := 1; weekDay <= 7; weekDay++ {
-			if (int(d.Weekday()) != weekDay%7) || d.Month() != startMonth {
-				wkTemplate = strings.Replace(wkTemplate, fmt.Sprintf("+D%d", weekDay), "", 1)
+			if (int(d.Weekday()) != weekDay%7) || d.Month() != mm.month {
+				templ = strings.Replace(templ, fmt.Sprintf("+D%d", weekDay), "", 1)
 				continue
 			}
-			wkTemplate = strings.Replace(wkTemplate, fmt.Sprintf("+D%d", weekDay), strconv.Itoa(d.Day()), 1)
+			templ = strings.Replace(templ, fmt.Sprintf("+D%d", weekDay), strconv.Itoa(d.Day()), 1)
 			d = d.Add(1)
 		}
 
-		template = strings.Replace(template, fmt.Sprintf("+W%d", week), wkTemplate, 1)
+		latex = strings.Replace(latex, fmt.Sprintf("+W%d", week), templ, 1)
 	}
 
-	return template
+	return latex
 }
 
-func (mmt *miniMonthTemplate) MonthStr() string {
-	return fmt.Sprintf("%s %d", mmt.month, mmt.year)
+func (mm *Minimonth) LatexCommand() string {
+	return mm.latexCommand
 }
 
-func (mmt *miniMonthTemplate) LaTeXCommand() string {
-	return mmt.latexCommand
-}
+func (mm *Minimonth) LaTeX() string {
+	latex := templates.MinimonthTemplate
 
-func (mmt *miniMonthTemplate) LaTeX() string {
-	latex := miniCalMonthTemplate
-	latex = strings.Replace(latex, "+COMMAND", mmt.latexCommand, 1)
-	latex = strings.Replace(latex, "+MONTH", fmt.Sprintf("%s %d", mmt.month, mmt.year), 1)
-	latex = strings.Replace(latex, "+WEEKHEADER", mmt.generateWeekHeader(), 1)
-	latex = mmt.fillWeeks(latex, date.New(mmt.year, mmt.month, 1))
+	latex = strings.Replace(latex, "+COMMAND", mm.latexCommand, 1)
+	latex = strings.Replace(latex, "+MONTH", fmt.Sprintf("%s %d", mm.month, mm.year), 1)
+	latex = mm.generateWeekHeader(latex)
+	latex = mm.generateWeeks(latex)
 
 	return latex
 }

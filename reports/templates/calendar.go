@@ -1,4 +1,83 @@
-\documentclass[10pt]{book}
+package templates
+
+// DoomsdayTableRowTemplate is the LaTeX code for an individual row of the Doomsday reference table. The generated rows
+// should cover a span of two years prior to this calendar's fiscal year, up to two years after. The current year's
+// values should be wraped in a `\textbf{}` macro.
+//
+// The placeholders are:
+//
+//	+Y					the year represented by this table entry
+//	+DD					the day of this years' Doomsday
+const DoomsdayTableRowTemplate = `+Y & +DD \\
+`
+
+// DoomsdayTableTemplate is the LaTeX code for creating the table of Doomsdays for the adjacent years.
+// The placeholder is the collection of DoomsdayTableRowTemplate rows.
+const DoomsdayTableTemplate = `\begin{tabular}{rc}
+\toprule
+\textbf{Year} & \textbf{Doomsday} \\
++DD_TABLE_ROWS
+\midrule
+`
+
+// SolsticeTableTemplate is the LaTeX code for creating the table of solstices and equinoxes that occur during the span
+// covered by this calendar.
+// The placeholders are:
+//
+//	+FYS				the calendar year of the first winter solstice on this calendar (FY-1)
+//	+WS1				the ACP 125 DTG of the first winter solstice on this calendar
+//	+VE					the ACP 125 DTG of this calendar's vernal equinox
+//	+SS					the ACP 125 DTG of this calendar's summer solstice
+//	+AE					the ACP 125 DTG of this calendar's autumnal equinox
+//	+FYE				the calendar year of the second winter solstice on this calendar (FY)
+//	+WS1				the ACP 125 DTG of the second winter solstice on this calendar
+const SolsticeTableTemplate = `\begin{tabular}{llr}
+\toprule
+\Capricorn  & Winter Solstice (+FYS)  & +WS1 \\
+\Aries      & Vernal Equinox          & +VE  \\
+\Cancer     & Summer Solstice         & +SS  \\
+\Libra      & Autumnal Equinox        & +AE  \\
+\Capricorn  & Winter Solstice (+FYE)  & +WS2 \\
+\bottomrule
+\end{tabular}
+`
+
+// HolidayAbbvRowTemplate is the LaTeX code for a row in the holiday abbreviations table.
+// The placeholders are:
+//
+//	+ABBV				the holiday's abbreviation
+//	+FULL_NAME			the holiday's full name
+//	+CY1Act				the actual date of the holiday in the first calendar year (FY-1)
+//	+CY1Obs				the observed date of the holiday (if different) in the first calendar year (FY-1)
+//	+CY2Act				the actual date of the holiday in the second calendar year (FY)
+//	+CY2Obs				the observed date of the holiday (if different) in the second calendar year (FY)
+const HolidayAbbvRowTemplate = `+ABBV & +FULL_NAME & +CY1Act & +CY1Obs & +CY2Act & +CY2Obs \\
+`
+
+// CalendarTemplate is the LaTeX code for the master calendar file.
+// All other templates are injected into this template before compiling.
+// The placeholders for other templates in this package are:
+//
+//	+DOOMSDAYS			placeholder for the processed DoomsdayTableTemplate
+//	+SOLSTICES			placeholder for the processed SolsticeTableTemplate
+//	+ABBVS				placeholder for all of the processed HolidayAbbvRowTemplate rows
+//	+T1..4				placeholders for the processed TrimesterTemplate
+//	+Q1..5				placeholders for the processed QuarterTemplate
+//	+M01..15			placeholders for the processed MonthTemplate
+//	+MINIMONTH_CMDS		placeholder for all of the processed MinimonthTemplate
+//
+// The other placeholders in this template are:
+//
+//	+LCD				the Lunar Calibration Date that the Tikz uses to calculate and then draw the phase of the moon
+//	+TITLE_COLOR		the color to use for the title box outline on the calendar's title page
+//	+CAL_START			the full name and year of the first full month page in this calendar
+//	+CAL_END			the full name and year of the last full month page in this calendar
+//	+JP_START			the starting year of this calendar, expressed as the year of Julian Period A
+//	+JP_END				the ending year of this calendar, expressed as the year of Julian Period A
+//	+PIC				the picture to typeset on the title page of the calendar
+//	+CY1				the first calendar year covered in this calendar (i.e. FY-1)
+//	+CY2				the second calendar year covered in this calendar (i.e. FY)
+const CalendarTemplate = `\documentclass[10pt]{book}
 
 \usepackage{booktabs}
 \usepackage{fancyhdr}
@@ -80,7 +159,7 @@
 \newcommand{\waningcrescent}{\moon{7*\synodicmonth/8}}
 \makeatother
 
-+MINIMONTHCMDS
++MINIMONTH_CMDS
 
 \begin{document}
 
@@ -91,7 +170,7 @@
 
         \vspace*{0.25in}
 
-        \fcolorbox{+TITLECOLOR}{white}{%
+        \fcolorbox{+TITLE_COLOR}{white}{%
             \begin{minipage}{0.5\textwidth}
                 \begin{center}
                     AG7IF Planning Calendar
@@ -325,3 +404,4 @@
 +M15
 
 \end{document}
+`

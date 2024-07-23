@@ -1,4 +1,4 @@
-package calendar
+package events
 
 import (
 	"time"
@@ -6,15 +6,8 @@ import (
 	"github.com/fxtlabs/date"
 	"github.com/soniakeys/meeus/v3/julian"
 	"github.com/soniakeys/meeus/v3/solstice"
-)
 
-type Solstice int
-
-const (
-	VernalEquinox Solstice = iota + 1
-	SummerSolstice
-	AutumnalEquinox
-	WinterSolstice
+	"github.com/derhabicht/planning-calendar/calendar"
 )
 
 func TimeToLocalDate(t time.Time) date.Date {
@@ -73,23 +66,23 @@ func (st SolsticeTable) SecondWinterSolstice() time.Time {
 	return st.secondWinterSolstice
 }
 
-func (st SolsticeTable) IsSolstice(d date.Date) (bool, Solstice) {
+func (st SolsticeTable) IsSolstice(d date.Date) (bool, calendar.Solstice) {
 	switch d.Month() {
 	case time.March:
 		if d == TimeToLocalDate(st.vernalEquinox) {
-			return true, VernalEquinox
+			return true, calendar.VernalEquinox
 		}
 	case time.June:
 		if d == TimeToLocalDate(st.summerSolstice) {
-			return true, SummerSolstice
+			return true, calendar.SummerSolstice
 		}
 	case time.September:
 		if d == TimeToLocalDate(st.autumnalEquinox) {
-			return true, AutumnalEquinox
+			return true, calendar.AutumnalEquinox
 		}
 	case time.December:
 		if (d == TimeToLocalDate(st.firstWinterSolstice)) || (d == TimeToLocalDate(st.secondWinterSolstice)) {
-			return true, WinterSolstice
+			return true, calendar.WinterSolstice
 		}
 	default:
 		break

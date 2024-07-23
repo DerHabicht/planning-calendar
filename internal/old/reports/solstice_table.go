@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/derhabicht/planning-calendar/calendar"
+	"github.com/derhabicht/planning-calendar/calendar/events"
 )
 
 type SolsticeSymbol int
@@ -17,15 +17,15 @@ const (
 	WinterSolstice
 )
 
-func SolsticeSymbolFromSolstice(sol calendar.Solstice) SolsticeSymbol {
+func SolsticeSymbolFromSolstice(sol events.Solstice) SolsticeSymbol {
 	switch sol {
-	case calendar.VernalEquinox:
+	case events.VernalEquinox:
 		return VernalEquinox
-	case calendar.SummerSolstice:
+	case events.SummerSolstice:
 		return SummerSolstice
-	case calendar.AutumnalEquinox:
+	case events.AutumnalEquinox:
 		return AutumnalEquinox
-	case calendar.WinterSolstice:
+	case events.WinterSolstice:
 		return WinterSolstice
 	default:
 		return 0
@@ -67,7 +67,7 @@ type SolsticeTable struct {
 	secondWinterSolstice time.Time
 }
 
-func NewSolsticeTable(table calendar.SolsticeTable) SolsticeTable {
+func NewSolsticeTable(table events.SolsticeTable) SolsticeTable {
 	return SolsticeTable{
 		fiscalYear:           table.FiscalYear(),
 		firstWinterSolstice:  table.FirstWinterSolstice(),

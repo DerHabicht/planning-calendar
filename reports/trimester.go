@@ -7,33 +7,32 @@ import (
 	"github.com/fxtlabs/date"
 
 	"github.com/derhabicht/planning-calendar/calendar"
+	"github.com/derhabicht/planning-calendar/reports/templates"
 )
 
-type TrimesterTemplate struct {
-	fiscalYear         int
-	trimester          calendar.FyTrimester
-	startDate          date.Date
-	miniMonthTemplates []miniMonthTemplate
-	template           string
+type Trimester struct {
+	trimester  calendar.Trimester
+	minimonths map[date.Date]Minimonth
 }
 
-func NewTrimesterTemplate(trimester calendar.FyTrimester, fy int, template string, miniMonthTemplates []miniMonthTemplate) TrimesterTemplate {
-	return TrimesterTemplate{
-		fiscalYear:         fy,
-		trimester:          trimester,
-		startDate:          trimester.StartDate(fy),
-		miniMonthTemplates: miniMonthTemplates,
-		template:           template,
+func NewTrimester(trimester calendar.Trimester, minimonths map[date.Date]Minimonth) Trimester {
+	return Trimester{
+		trimester:  trimester,
+		minimonths: minimonths,
 	}
 }
 
-func (t TrimesterTemplate) LaTeX() string {
-	template := strings.Replace(t.template, "+T", t.trimester.FullName(t.fiscalYear), 1)
+func (t *Trimester) LaTeX() string {
+	latex := templates.TrimesterTemplate
 
-	for i, v := range t.miniMonthTemplates {
-		key := fmt.Sprintf("+M%dCMD", i+1)
-		template = strings.Replace(template, key, v.LaTeXCommand(), 1)
+	latex = strings.Replace(latex, "+T", t.trimester.Full(), 1)
+
+	d := date.New(t.trimester.StartDate().Year(), t.trimester.StartDate().Month(), 1)
+	for i := 1; i <= 4; i++ {
+		mm := t.minimonths[d]
+		latex = strings.Replace(latex, fmt.Sprintf("+M%dCMD", i), mm.LatexCommand(), 1)
+		d = d.AddDate(0, 1, 0)
 	}
 
-	return template
+	return latex
 }

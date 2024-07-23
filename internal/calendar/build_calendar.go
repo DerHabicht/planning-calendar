@@ -8,9 +8,10 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/derhabicht/planning-calendar/calendar"
+	"github.com/derhabicht/planning-calendar/calendar/plancal"
 	"github.com/derhabicht/planning-calendar/internal/config"
 	"github.com/derhabicht/planning-calendar/internal/logging"
-	"github.com/derhabicht/planning-calendar/reports"
+	"github.com/derhabicht/planning-calendar/internal/old/reports"
 )
 
 func configureLaTeXCompiler(logger logging.Logger) (*latex.Compiler, error) {
@@ -49,7 +50,7 @@ func generateLaTeX(cal calendar.Calendar, compiler *latex.Compiler, outputFile f
 
 func BuildCalendar(year int, outputFile files.File, logger logging.Logger) error {
 
-	cal := calendar.NewCalendar(year)
+	cal := plancal.NewCalendar(year)
 
 	compiler, err := configureLaTeXCompiler(logger)
 	if err != nil {

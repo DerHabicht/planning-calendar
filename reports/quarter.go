@@ -8,54 +8,49 @@ import (
 	"github.com/fxtlabs/date"
 
 	"github.com/derhabicht/planning-calendar/calendar"
+	"github.com/derhabicht/planning-calendar/reports/templates"
 )
 
-const okrHeaderTemplate = `Objectives & Key Results & +W01 & +W02 & +W03 & +W04 & +W05 & +W06 & +W07 & +W08 & +W09 & +W10 & +W11 & +W12 & +W13`
-
-type QuarterTemplate struct {
-	fiscalYear         int
-	calendarYear       int
-	fiscalQuarter      calendar.FyQuarter
-	calQuarter         calendar.Ag7ifQuarter
-	startDate          date.Date
-	miniMonthTemplates []miniMonthTemplate
-	template           string
+type Quarter struct {
+	quarter    calendar.Quarter
+	minimonths map[date.Date]Minimonth
 }
 
-func NewQuarterTemplate(quarter calendar.FyQuarter, fy int, template string, miniMonthTemplates []miniMonthTemplate) QuarterTemplate {
-	calendarYear, calQuarter := quarter.CyQuarter(fy)
-
-	return QuarterTemplate{
-		fiscalYear:         fy,
-		calendarYear:       calendarYear,
-		fiscalQuarter:      quarter,
-		calQuarter:         calQuarter,
-		startDate:          quarter.StartDate(fy),
-		miniMonthTemplates: miniMonthTemplates,
-		template:           template,
+func NewQuarter(quarter calendar.Quarter, minimonths map[date.Date]Minimonth) Quarter {
+	return Quarter{
+		quarter:    quarter,
+		minimonths: minimonths,
 	}
 }
 
-func (q QuarterTemplate) setOKRHeader(template string) string {
-	header := okrHeaderTemplate
-	week := q.calQuarter.StartWeek()
-	for w := 1; w <= 13; w++ {
-		header = strings.Replace(header, fmt.Sprintf("+W%02d", w), strconv.Itoa(week), 1)
-		week++
+func (q *Quarter) generateOKRHeader(latex string) string {
+	hdr := templates.OKRHeaderTemplate
+
+	w := q.quarter.FirstWeek()
+	for i := 1; i <= 13; i++ {
+		_, wk, _ := w.ISOWeek()
+		hdr = strings.Replace(hdr, fmt.Sprintf("+W%0d", i), strconv.Itoa(wk), 1)
 	}
 
-	return strings.Replace(template, "+OKRHDR", header, -1)
+	latex = strings.Replace(latex, "+OKR_HDR", hdr, 1)
+
+	return latex
 }
 
-func (q QuarterTemplate) LaTeX() string {
-	template := strings.Replace(q.template, "+CYQ", q.calQuarter.FullName(q.calendarYear), 1)
-	template = strings.Replace(template, "+FYQ", q.fiscalQuarter.FullName(q.fiscalYear), 1)
-	template = q.setOKRHeader(template)
+func (q *Quarter) LaTeX() string {
+	latex := templates.QuarterTemplate
 
-	for i, v := range q.miniMonthTemplates {
-		key := fmt.Sprintf("+M%dCMD", i+1)
-		template = strings.Replace(template, key, v.LaTeXCommand(), 1)
+	latex = strings.Replace(latex, "+FYQ", q.quarter.FirstWeek().FyQuarter().Full(), 1)
+	latex = strings.Replace(latex, "+CYQ", q.quarter.FirstWeek().CyQuarter().Full(), 1)
+
+	d := date.New(q.quarter.StartDate().Year(), q.quarter.StartDate().Month(), 1)
+	for i := 1; i <= 3; i++ {
+		mm := q.minimonths[d]
+		latex = strings.Replace(latex, fmt.Sprintf("+M%dCMD", i), mm.LatexCommand(), 1)
+		d = d.AddDate(0, 1, 0)
 	}
 
-	return template
+	latex = q.generateOKRHeader(latex)
+
+	return latex
 }

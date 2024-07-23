@@ -2,158 +2,161 @@ package reports
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/fxtlabs/date"
 	"github.com/pkg/errors"
 
 	"github.com/derhabicht/planning-calendar/calendar"
+	"github.com/derhabicht/planning-calendar/calendar/doomsday"
 	"github.com/derhabicht/planning-calendar/internal/config"
+	"github.com/derhabicht/planning-calendar/reports/templates"
 )
 
 type Calendar struct {
-	calendar           calendar.Calendar
-	solsticeTable      SolsticeTable
-	miniMonthTemplates []miniMonthTemplate
-	calendarTemplate   string
-	trimesterTemplate  string
-	quarterTemplate    string
-	monthTemplate      string
+	cfgDir     string
+	calendar   calendar.Calendar
+	minimonths map[date.Date]Minimonth
 }
 
-func NewCalendar(cal calendar.Calendar) (Calendar, error) {
+func NewCalendar(cal calendar.Calendar) Calendar {
 	cfgDir, err := config.ConfigDir()
 	if err != nil {
-		return Calendar{}, errors.WithStack(err)
+		panic(errors.WithStack(err))
 	}
 
-	raw, err := os.ReadFile(filepath.Join(cfgDir, "assets", "calendar.tex"))
-	if err != nil {
-		return Calendar{}, errors.WithStack(err)
-	}
-	calendarTemplate := string(raw)
-
-	raw, err = os.ReadFile(filepath.Join(cfgDir, "assets", "trimester.tex"))
-	if err != nil {
-		return Calendar{}, errors.WithStack(err)
-	}
-	trimesterTemplate := string(raw)
-
-	raw, err = os.ReadFile(filepath.Join(cfgDir, "assets", "quarter.tex"))
-	if err != nil {
-		return Calendar{}, errors.WithStack(err)
-	}
-	quarterTemplate := string(raw)
-
-	raw, err = os.ReadFile(filepath.Join(cfgDir, "assets", "month.tex"))
-	if err != nil {
-		return Calendar{}, errors.WithStack(err)
-	}
-	monthTemplate := string(raw)
-
-	miniMonthTemplates := generateTemplates(cal.FiscalYear())
+	minimonths := NewMinimonthList(cal)
 
 	return Calendar{
-		calendar:           cal,
-		solsticeTable:      NewSolsticeTable(cal.SolsticeTable()),
-		miniMonthTemplates: miniMonthTemplates,
-		calendarTemplate:   calendarTemplate,
-		trimesterTemplate:  trimesterTemplate,
-		quarterTemplate:    quarterTemplate,
-		monthTemplate:      monthTemplate,
-	}, nil
+		cfgDir:     cfgDir,
+		calendar:   cal,
+		minimonths: minimonths,
+	}
 }
 
-func (ct Calendar) generateDoomsdayContextTable() string {
-	latex := `\begin{tabular}{rc}
-\toprule
-\textbf{Year} & \textbf{Doomsday} \\
-\midrule
-`
+func (c *Calendar) fillCalParams(latex string) string {
+	//	Set the Lunar Calibration Date that the Tikz uses to calculate and then draw the phase of the moon
+	latex = strings.Replace(latex, "+LCD", config.GetString("lunar_calibration_date"), 1)
+	//	Set the full name and year of the first full month page in this calendar
+	latex = strings.Replace(latex, "+CAL_START", fmt.Sprintf("October %d", c.calendar.FiscalYear()-1), 1)
+	//	Set the full name and year of the last full month page in this calendar
+	latex = strings.Replace(latex, "+CAL_END", fmt.Sprintf("December %d", c.calendar.FiscalYear()), 1)
+	//	Set the starting year of this calendar, expressed as the year of Julian Period A
+	latex = strings.Replace(latex, "+JP_START", strconv.Itoa(c.calendar.JulianPeriod()-1), 1)
+	//	Set the ending year of this calendar, expressed as the year of Julian Period A
+	latex = strings.Replace(latex, "+JP_END", strconv.Itoa(c.calendar.JulianPeriod()), 1)
+	//	Set the picture to typeset on the title page of the calendar
+	latex = strings.Replace(latex, "+PIC", filepath.Join(c.cfgDir, "assets", config.GetString("cover_logo")), 1)
+	//	Set the first calendar year covered in this calendar (i.e. FY-1)
+	latex = strings.Replace(latex, "+CY1", strconv.Itoa(c.calendar.FiscalYear()-1), 1)
+	//	Set the second calendar year covered in this calendar (i.e. FY)
+	latex = strings.Replace(latex, "+CY2", strconv.Itoa(c.calendar.FiscalYear()), 1)
 
-	for y := ct.calendar.FiscalYear() - 2; y < ct.calendar.FiscalYear()+3; y++ {
-		doomsday := calendar.WeekdayLetters[calendar.ComputeDoomsday(y)]
-
-		if y == ct.calendar.FiscalYear() {
-			latex += fmt.Sprintf("\\textbf{%d} & \\textbf{%s} \\\\\n", y, doomsday)
-		} else {
-			latex += fmt.Sprintf("%d & %s \\\\\n", y, doomsday)
-		}
+	//	Set the color to use for the title box outline on the calendar's title page
+	if c.calendar.FiscalYear()%2 == 0 {
+		latex = strings.Replace(latex, "+TITLE_COLOR", "blue", 1)
+	} else {
+		latex = strings.Replace(latex, "+TITLE_COLOR", "red", 1)
 	}
-
-	latex += `\bottomrule\end{tabular}`
 
 	return latex
 }
 
-func (ct Calendar) LaTeX() string {
-	cfgDir, err := config.ConfigDir()
-	if err != nil {
-		panic(err)
-	}
-	coverLogoPath := filepath.Join(cfgDir, "assets", config.GetString("cover_logo"))
+func (c *Calendar) generateDoomsdayTable(latex string) string {
+	table := templates.DoomsdayTableTemplate
 
-	holidayList := NewHolidayList(ct.calendar)
+	var rows string
+	for year := c.calendar.FiscalYear() - 2; year <= c.calendar.FiscalYear()+2; year++ {
+		dd := doomsday.ComputeDoomsday(year)
+		row := templates.DoomsdayTableRowTemplate
+		if year == c.calendar.FiscalYear() {
+			row = strings.Replace(row, "+Y", fmt.Sprintf(`\textbf{%d}`, year), 1)
+			row = strings.Replace(row, "+DD", fmt.Sprintf(`\textbf{%d}`, dd), 1)
+		} else {
+			row = strings.Replace(row, "+Y", strconv.Itoa(year), 1)
+			row = strings.Replace(row, "+DD", calendar.WeekdayLetter(dd), 1)
+		}
 
-	latex := ct.calendarTemplate
-
-	latex = strings.Replace(latex, "+PIC", coverLogoPath, 1)
-	latex = strings.Replace(latex, "+CAL_START", fmt.Sprintf("October %d", ct.calendar.FiscalYear()-1), 1)
-	latex = strings.Replace(latex, "+CAL_END", fmt.Sprintf("December %d", ct.calendar.FiscalYear()), 1)
-	latex = strings.Replace(latex, "+JP_START", fmt.Sprintf("%d", ct.calendar.StartingJulianPeriod()), 1)
-	latex = strings.Replace(latex, "+JP_END", fmt.Sprintf("%d", ct.calendar.StartingJulianPeriod()+1), 1)
-	latex = strings.Replace(latex, "+LCD", config.GetString("lunar_calibration_date"), 1)
-	latex = strings.Replace(latex, "+CY1", fmt.Sprintf("%d", ct.calendar.FiscalYear()-1), 2)
-	latex = strings.Replace(latex, "+CY2", fmt.Sprintf("%d", ct.calendar.FiscalYear()), 2)
-	latex = strings.Replace(latex, "+ABBVS", holidayList.LaTeX(), 1)
-	latex = strings.Replace(latex, "+DOOMSDAYS", ct.generateDoomsdayContextTable(), 1)
-	latex = strings.Replace(latex, "+SOLSTICES", ct.solsticeTable.LaTeX(), 1)
-
-	if ct.calendar.FiscalYear()%2 == 0 {
-		latex = strings.Replace(latex, "+TITLECOLOR", "blue", 1)
-	} else {
-		latex = strings.Replace(latex, "+TITLECOLOR", "red", 1)
+		rows += row
 	}
 
-	miniMonthCmds := ""
-	for _, v := range ct.miniMonthTemplates {
-		miniMonthCmds += v.LaTeX()
+	table = strings.Replace(table, "+DD_TABLE_ROWS", rows, 1)
+	latex = strings.Replace(latex, "+DOOMSDAYS", table, 1)
+
+	return latex
+}
+
+func (c *Calendar) generateSolsticeTable(latex string) string {
+	const layout = "021504Z Jan"
+
+	table := templates.SolsticeTableTemplate
+	table = strings.Replace(table, "+FYS", strconv.Itoa(c.calendar.FiscalYear()-1), 1)
+	table = strings.Replace(table, "+WS1", c.calendar.SolsticeTable().FirstWinterSolstice().Format(layout), 1)
+	table = strings.Replace(table, "+VE", c.calendar.SolsticeTable().VernalEquinox().Format(layout), 1)
+	table = strings.Replace(table, "+SS", c.calendar.SolsticeTable().SummerSolstice().Format(layout), 1)
+	table = strings.Replace(table, "+AE", c.calendar.SolsticeTable().AutumnalEquinox().Format(layout), 1)
+	table = strings.Replace(table, "+FYE", strconv.Itoa(c.calendar.FiscalYear()), 1)
+	table = strings.Replace(table, "+WS2", c.calendar.SolsticeTable().SecondWinterSolstice().Format(layout), 1)
+
+	latex = strings.Replace(latex, "+SOLSTICES", table, 1)
+
+	return latex
+}
+
+func (c *Calendar) generateMiniMonthCmds(latex string) string {
+
+	mm := ""
+	for _, m := range c.minimonths {
+		mm += m.LaTeX()
 	}
 
-	latex = strings.Replace(latex, "+MINIMONTHCMDS", miniMonthCmds, 1)
+	latex = strings.Replace(latex, "+MINIMONTH_CMDS", mm, 1)
 
-	tri := calendar.FyT1
-	for trimester := 0; trimester < 4; trimester++ {
-		startMonthIdx := (trimester * 4) + 1
-		endMonthIdx := (trimester * 4) + 5
-		tt := NewTrimesterTemplate(tri, ct.calendar.FiscalYear(), ct.trimesterTemplate, ct.miniMonthTemplates[startMonthIdx:endMonthIdx])
+	return latex
+}
 
-		latex = strings.Replace(latex, fmt.Sprintf("+T%d", trimester+1), tt.LaTeX(), 1)
+func (c *Calendar) generateTrimesterPages(latex string) string {
+	trimester := c.calendar.FirstWeek().Trimester()
+	for i := 1; i <= 5; i++ {
+		tr := NewTrimester(trimester, c.minimonths)
 
-		_, tri = tri.NextTrimester(ct.calendar.FiscalYear())
+		latex = strings.Replace(latex, fmt.Sprintf("+T%d", i), tr.LaTeX(), 1)
+
+		trimester = trimester.Next()
 	}
 
-	fyQtr := calendar.FyQ1
-	for quarter := 0; quarter < 5; quarter++ {
-		startMonthIdx := (quarter * 3) + 1
-		endMonthIdx := (quarter * 3) + 4
-		qt := NewQuarterTemplate(fyQtr, ct.calendar.FiscalYear(), ct.quarterTemplate, ct.miniMonthTemplates[startMonthIdx:endMonthIdx])
+	return latex
+}
 
-		latex = strings.Replace(latex, fmt.Sprintf("+Q%d", quarter+1), qt.LaTeX(), 1)
+func (c *Calendar) generateQuarterPages(latex string) string {
+	quarter := c.calendar.FirstWeek().FyQuarter()
+	for i := 1; i <= 5; i++ {
+		qt := NewQuarter(quarter, c.minimonths)
 
-		_, fyQtr = fyQtr.NextQuarter(ct.calendar.FiscalYear())
+		latex = strings.Replace(latex, fmt.Sprintf("+T%d", i), qt.LaTeX(), 1)
+
+		quarter = quarter.Next()
 	}
 
-	for month := 1; month <= 15; month++ {
-		mt := NewMonthTemplate(ct.calendar, ct.monthTemplate)
+	return latex
+}
 
-		latex = strings.Replace(latex, fmt.Sprintf("+M%02d", month), mt.LaTeX(), 1)
-		latex = strings.Replace(latex, "+PREVCMD", ct.miniMonthTemplates[month-1].LaTeXCommand(), 1)
-		latex = strings.Replace(latex, "+NEXTCMD", ct.miniMonthTemplates[month+1].LaTeXCommand(), 1)
+func (c *Calendar) generateMonthPages(latex string) string {
 
-		ct.calendar.NextMonth()
-	}
+}
+
+func (c *Calendar) LaTeX() string {
+	latex := templates.CalendarTemplate
+
+	latex = c.fillCalParams(latex)
+	latex = c.generateDoomsdayTable(latex)
+	latex = c.generateSolsticeTable(latex)
+	latex = c.generateMiniMonthCmds(latex)
+	latex = c.generateTrimesterPages(latex)
+	latex = c.generateQuarterPages(latex)
+	latex = c.generateMonthPages(latex)
 
 	return latex
 }

@@ -1,4 +1,4 @@
-package calendar
+package events
 
 import (
 	"time"

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/derhabicht/planning-calendar/calendar"
+	"github.com/derhabicht/planning-calendar/calendar/events"
 )
 
 type Holiday struct {
@@ -17,7 +18,7 @@ type Holiday struct {
 	cy2ObsDate   time.Time
 }
 
-func NewHoliday(holiday calendar.Holiday, fy int) Holiday {
+func NewHoliday(holiday events.Holiday, fy int) Holiday {
 	cy1Act, cy1Obs := holiday.Occurs(fy - 1)
 	cy2Act, cy2Obs := holiday.Occurs(fy)
 
