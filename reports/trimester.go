@@ -14,25 +14,32 @@ const trimesterMonthCount = 4
 
 type Trimester struct {
 	trimester  calendar.Trimester
-	minimonths map[date.Date]Minimonth
+	minimonths []Minimonth
 }
 
-func NewTrimester(trimester calendar.Trimester, minimonths map[date.Date]Minimonth) Trimester {
+func NewTrimester(trimester calendar.Trimester, minimonths map[string]Minimonth) Trimester {
+	var mm []Minimonth
+
+	d := trimester.StartDate()
+	for i := 0; i < trimesterMonthCount; i++ {
+		mm = append(mm, minimonths[d.Format(minimonthKeyLayout)])
+		d.AddDate(0, 1, 0)
+	}
+
 	return Trimester{
 		trimester:  trimester,
-		minimonths: minimonths,
+		minimonths: mm,
 	}
 }
 
 func (t *Trimester) LaTeX() string {
 	latex := templates.TrimesterTemplate
 
-	latex = strings.Replace(latex, "+T", t.trimester.Full(), 1)
+	latex = strings.Replace(latex, templates.FullTrimester, t.trimester.Full(), 1)
 
 	d := date.New(t.trimester.StartDate().Year(), t.trimester.StartDate().Month(), 1)
-	for i := 1; i <= trimesterMonthCount; i++ {
-		mm := t.minimonths[d]
-		latex = strings.Replace(latex, fmt.Sprintf("+M%dCMD", i), mm.LatexCommand(), 1)
+	for i, mm := range t.minimonths {
+		latex = strings.Replace(latex, fmt.Sprintf(templates.MinimonthMacro, i+1), mm.LatexCommand(), 1)
 		d = d.AddDate(0, 1, 0)
 	}
 

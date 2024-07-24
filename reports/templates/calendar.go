@@ -7,7 +7,7 @@ package templates
 // The placeholders are:
 //
 //	+Y					the year represented by this table entry
-//	+DD					the day of this years' Doomsday
+//	+DD					the day of this year's Doomsday
 const DoomsdayTableRowTemplate = `+Y & +DD \\
 `
 
@@ -26,20 +26,20 @@ const DoomsdayTableTemplate = `\begin{tabular}{rc}
 // covered by this calendar.
 // The placeholders are:
 //
-//	+FYS				the calendar year of the first winter solstice on this calendar (FY-1)
+//	+CY1				the calendar year of the first winter solstice on this calendar (FY-1)
 //	+WS1				the ACP 125 DTG of the first winter solstice on this calendar
 //	+VE					the ACP 125 DTG of this calendar's vernal equinox
 //	+SS					the ACP 125 DTG of this calendar's summer solstice
 //	+AE					the ACP 125 DTG of this calendar's autumnal equinox
-//	+FYE				the calendar year of the second winter solstice on this calendar (FY)
-//	+WS1				the ACP 125 DTG of the second winter solstice on this calendar
+//	+CY2				the calendar year of the second winter solstice on this calendar (FY)
+//	+WS2				the ACP 125 DTG of the second winter solstice on this calendar
 const SolsticeTableTemplate = `\begin{tabular}{llr}
 \toprule
-\Capricorn  & Winter Solstice (+FYS)  & +WS1 \\
+\Capricorn  & Winter Solstice (+CY1)  & +WS1 \\
 \Aries      & Vernal Equinox          & +VE  \\
 \Cancer     & Summer Solstice         & +SS  \\
 \Libra      & Autumnal Equinox        & +AE  \\
-\Capricorn  & Winter Solstice (+FYE)  & +WS2 \\
+\Capricorn  & Winter Solstice (+CY2)  & +WS2 \\
 \bottomrule
 \end{tabular}
 `

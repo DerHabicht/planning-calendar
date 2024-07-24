@@ -14,6 +14,7 @@ import (
 )
 
 const minimonthWeekCount = 6
+const minimonthKeyLayout = `2006-01`
 
 type Minimonth struct {
 	month        time.Month
@@ -22,15 +23,15 @@ type Minimonth struct {
 	latexCommand string
 }
 
-func NewMinimonthList(calendar calendar.Calendar) map[date.Date]Minimonth {
-	minimonths := make(map[date.Date]Minimonth)
+func NewMinimonthList(calendar calendar.Calendar) map[string]Minimonth {
+	minimonths := make(map[string]Minimonth)
 
 	endDate := date.New(calendar.FiscalYear()+2, time.June, 1)
 	d := date.New(calendar.FiscalYear()-1, time.September, 1)
 	for d.Before(endDate) {
 		m := NewMinimonth(calendar.FiscalYear(), d.Year(), d.Month())
 
-		minimonths[d] = m
+		minimonths[d.Format(minimonthKeyLayout)] = m
 
 		d = d.AddDate(0, 1, 0)
 	}
@@ -87,7 +88,7 @@ func (mm *Minimonth) generateWeekHeader(latex string) string {
 		templ = strings.Replace(templ, fmt.Sprintf("+%s", letter), repl, 1)
 	}
 
-	latex = strings.Replace(latex, "WEEK_HEADER", templ, 1)
+	latex = strings.Replace(latex, templates.WeekHeader, templ, 1)
 
 	return latex
 }
@@ -96,22 +97,20 @@ func (mm *Minimonth) generateWeeks(latex string) string {
 	d := date.New(mm.year, mm.month, 1)
 	for week := 1; week <= minimonthWeekCount; week++ {
 		templ := templates.MinimonthWeekTemplate
-		if d.Month() == mm.month {
-			_, isoWeek := d.ISOWeek()
-			templ = strings.Replace(templ, "+W", strconv.Itoa(isoWeek), 1)
-		} else {
-			templ = strings.Replace(templ, "+W", "", 1)
-		}
+
+		_, isoWeek := d.ISOWeek()
+		templ = strings.Replace(templ, templates.MinimonthWeekNumber, strconv.Itoa(isoWeek), 1)
+
 		for weekDay := 1; weekDay <= 7; weekDay++ {
 			if (int(d.Weekday()) != weekDay%7) || d.Month() != mm.month {
-				templ = strings.Replace(templ, fmt.Sprintf("+D%d", weekDay), "", 1)
+				templ = strings.Replace(templ, fmt.Sprintf(templates.MinimonthDay, weekDay), "", 1)
 				continue
 			}
-			templ = strings.Replace(templ, fmt.Sprintf("+D%d", weekDay), strconv.Itoa(d.Day()), 1)
+			templ = strings.Replace(templ, fmt.Sprintf(templates.MinimonthDay, weekDay), strconv.Itoa(d.Day()), 1)
 			d = d.Add(1)
 		}
 
-		latex = strings.Replace(latex, fmt.Sprintf("+W%d", week), templ, 1)
+		latex = strings.Replace(latex, fmt.Sprintf(templates.MinimonthWeek, week), templ, 1)
 	}
 
 	return latex
@@ -124,8 +123,8 @@ func (mm *Minimonth) LatexCommand() string {
 func (mm *Minimonth) LaTeX() string {
 	latex := templates.MinimonthTemplate
 
-	latex = strings.Replace(latex, "+COMMAND", mm.latexCommand, 1)
-	latex = strings.Replace(latex, "+MONTH", fmt.Sprintf("%s %d", mm.month, mm.year), 1)
+	latex = strings.Replace(latex, templates.MinimonthCommand, mm.latexCommand, 1)
+	latex = strings.Replace(latex, templates.MonthName, fmt.Sprintf("%s %d", mm.month, mm.year), 1)
 	latex = mm.generateWeekHeader(latex)
 	latex = mm.generateWeeks(latex)
 

@@ -10,7 +10,8 @@ const MonthWeekdayHeaderTemplate = `KFM & & & +MON & +TUE & +WED & +THU & +FRI &
 //	+DY					the day of the month represented by this cell; the abbreviated month should be included if
 //						crossing month boundaries
 //	+HD					the abbreviation of any holiday that falls on this day
-//	+MP					the full date---in ISO 8601 format---for the TikZ moon phase calculation
+//	+FD					the full date---in ISO 8601 format---for the TikZ moon phase calculation (deprecated)
+//	+MP					the LaTeX command to draw the phase of the moon for this day
 //	+YD					the ordinal day number
 //	+SR					the sunrise time for the configured location
 //	+MJD				the Modified Julian Day number

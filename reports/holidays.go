@@ -45,21 +45,21 @@ func (hd HolidayData) LaTeX() string {
 	const layout = `02 Jan`
 	latex := templates.HolidayAbbvRowTemplate
 
-	latex = strings.Replace(latex, "+ABBV", hd.abbreviation, 1)
-	latex = strings.Replace(latex, "+FULL_NAME", hd.fullName, 1)
-	latex = strings.Replace(latex, "+CY1Act", hd.cy1act.Format(layout), 1)
-	latex = strings.Replace(latex, "+CY2Act", hd.cy2act.Format(layout), 1)
+	latex = strings.Replace(latex, templates.HolidayAbbreviation, hd.abbreviation, 1)
+	latex = strings.Replace(latex, templates.HolidayName, hd.fullName, 1)
+	latex = strings.Replace(latex, templates.HolidayActual1, hd.cy1act.Format(layout), 1)
+	latex = strings.Replace(latex, templates.HolidayActual2, hd.cy2act.Format(layout), 1)
 
 	if hd.cy1act.Equal(hd.cy1obs) {
-		latex = strings.Replace(latex, "+CY1Obs", "", 1)
+		latex = strings.Replace(latex, templates.HolidayObserved1, "", 1)
 	} else {
-		latex = strings.Replace(latex, "+CY1Obs", hd.cy1act.Format(layout), 1)
+		latex = strings.Replace(latex, templates.HolidayObserved1, hd.cy1act.Format(layout), 1)
 	}
 
 	if hd.cy2act.Equal(hd.cy2obs) {
-		latex = strings.Replace(latex, "+CY2Obs", "", 2)
+		latex = strings.Replace(latex, templates.HolidayObserved2, "", 2)
 	} else {
-		latex = strings.Replace(latex, "+CY2Obs", hd.cy2act.Format(layout), 2)
+		latex = strings.Replace(latex, templates.HolidayObserved2, hd.cy2act.Format(layout), 2)
 	}
 
 	return latex
@@ -72,7 +72,7 @@ type HolidayTables struct {
 func NewHolidayTables(cal calendar.HolidayCalendar, fy int) HolidayTables {
 	holidays := cal.Holidays()
 
-	data := make([]HolidayData, len(holidays))
+	var data []HolidayData
 	for _, holiday := range holidays {
 		d := NewHolidayData(fy, holiday)
 		data = append(data, d)
@@ -99,7 +99,7 @@ func (ht HolidayTables) TableByOccurrence(latex string) string {
 		table += holiday.LaTeX()
 	}
 
-	latex = strings.Replace(latex, "+HOLIDAYS", table, 1)
+	latex = strings.Replace(latex, templates.HolidayTableByOccurrence, table, 1)
 
 	return latex
 }
@@ -114,7 +114,7 @@ func (ht HolidayTables) TableByAbbreviation(latex string) string {
 		table += holiday.LaTeX()
 	}
 
-	latex = strings.Replace(latex, "+ABBVS", table, 1)
+	latex = strings.Replace(latex, templates.HolidayTableByAbbreviation, table, 1)
 
 	return latex
 }
