@@ -5,6 +5,9 @@ import (
 
 	"github.com/fxtlabs/date"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
+
+	"github.com/derhabicht/planning-calendar/internal/config"
 )
 
 func WeekdayLetter(wd time.Weekday) string {
@@ -65,4 +68,25 @@ func ComputeLastDayOfMonth(d date.Date) int {
 	default:
 		panic(errors.Errorf("not a valid time.Month value: %d", d.Month()))
 	}
+}
+
+func GetLocation() *time.Location {
+	loc, err := time.LoadLocation(config.GetString("home_location.tz"))
+	if err != nil {
+		log.Warn().Str("tz", config.GetString("home_location.tz")).Msg("Unable to load time zone from config, defaulting to local system time")
+		loc = time.Local
+	}
+
+	return loc
+}
+
+func TimeToLocalDate(t time.Time) date.Date {
+	loc := GetLocation()
+	local := t.In(loc)
+	return date.New(local.Year(), local.Month(), local.Day())
+}
+
+func DateToLocalTime(d date.Date) time.Time {
+	loc := GetLocation()
+	return d.In(loc)
 }

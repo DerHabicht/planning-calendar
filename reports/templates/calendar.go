@@ -16,8 +16,10 @@ const DoomsdayTableRowTemplate = `+Y & +DD \\
 const DoomsdayTableTemplate = `\begin{tabular}{rc}
 \toprule
 \textbf{Year} & \textbf{Doomsday} \\
-+DD_TABLE_ROWS
 \midrule
++DD_TABLE_ROWS
+\bottomrule
+\end{tabular}
 `
 
 // SolsticeTableTemplate is the LaTeX code for creating the table of solstices and equinoxes that occur during the span
@@ -60,7 +62,8 @@ const HolidayAbbvRowTemplate = `+ABBV & +FULL_NAME & +CY1Act & +CY1Obs & +CY2Act
 //
 //	+DOOMSDAYS			placeholder for the processed DoomsdayTableTemplate
 //	+SOLSTICES			placeholder for the processed SolsticeTableTemplate
-//	+ABBVS				placeholder for all of the processed HolidayAbbvRowTemplate rows
+//	+HOLIDAYS			placeholder for all of the processed HolidayAbbvRowTemplate rows, sorted by occurence date
+//	+ABBVS				placeholder for all of the processed HolidayAbbvRowTemplate rows, sorted by abbreviation
 //	+T1..4				placeholders for the processed TrimesterTemplate
 //	+Q1..5				placeholders for the processed QuarterTemplate
 //	+M01..15			placeholders for the processed MonthTemplate
@@ -189,14 +192,16 @@ const CalendarTemplate = `\documentclass[10pt]{book}
         \vspace*{0.25in}
 
     \end{center}
-
-    \newpage
-
-    \
-
-    \newpage
-
 \end{titlepage}
+
+\section*{+CY1/+CY2 Holidays}
+\begin{tabularx}{\textwidth}{lXrrrr}
+    \toprule
+    Abbreviation & Holiday & +CY1 Occurrence & +CY1 Observed & +CY2 Occurrence & +CY2 Observed \\
+    \midrule
+    +HOLIDAYS
+    \bottomrule
+\end{tabularx}
 
 \section*{Reference Tables}
 \begin{center}

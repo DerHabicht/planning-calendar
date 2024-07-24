@@ -8,7 +8,7 @@ import (
 
 // BaseVersion is the SemVer-formatted string that defines the current version of plancal.
 // Build information will be added at compile-time.
-const BaseVersion = "1.8.0"
+const BaseVersion = "1.8.1"
 
 // BuildTime is a timestamp of when the build is run. This variable is set at compile-time.
 var BuildTime string

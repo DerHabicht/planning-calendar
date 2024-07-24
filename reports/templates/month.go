@@ -10,12 +10,14 @@ const MonthWeekdayHeaderTemplate = `KFM & & & +MON & +TUE & +WED & +THU & +FRI &
 //	+DY					the day of the month represented by this cell; the abbreviated month should be included if
 //						crossing month boundaries
 //	+HD					the abbreviation of any holiday that falls on this day
-//	+FD					the full date---in ISO 8601 format---for the TikZ moon phase calculation
+//	+MP					the full date---in ISO 8601 format---for the TikZ moon phase calculation
 //	+YD					the ordinal day number
 //	+SR					the sunrise time for the configured location
 //	+MJD				the Modified Julian Day number
 //	+SS					the sunset time for the configured location
-const MonthDayTemplate = `+DY\\+HD\moon{+FD}\\\vspace{1em}\hspace{1em}+YD\hfill{}+SR\\+MJD\hfill{}+SS`
+//
+// const MonthDayTemplate = `+DY\\+HD\moon{+FD}\\\vspace{1em}\hspace{1em}+YD\hfill{}+SR\\+MJD\hfill{}+SS`
+const MonthDayTemplate = `+DY\\+HD+MP\\\vspace{1em}\hspace{1em}+YD\hfill{}+SR\\+MJD\hfill{}+SS`
 
 // MonthTemplate is the LaTeX code for generating a month page.
 // Template placeholders are:
@@ -26,9 +28,10 @@ const MonthDayTemplate = `+DY\\+HD\moon{+FD}\\\vspace{1em}\hspace{1em}+YD\hfill{
 //	+WEEKDAYS			the macro for the processed MonthWeekdayHeaderTemplate
 //	+FT1..6				the fiscal year trimester that this week (row) belongs to
 //	+FQ1..6				the fiscal year quarter that this week (row) belongs to
+//	+FW1..6				this week's (row's) fiscal year week number
 //	+AQ1..6				the calendar year quarter that this week (row) belongs to
 //	+AS1..6				the sprint that this week (row) belongs to
-//	+IW1..6				this week's (row's) ISO week number
+//	+IW1..6				this week's (row's) playing card and ISO week number
 //	+D01..42			the day data for the cells in the calendar
 const MonthTemplate = `\chapter*{\textbf{+M}\hfill{\footnotesize+PREV_CMD+NEXT_CMD}}
 \begin{center}

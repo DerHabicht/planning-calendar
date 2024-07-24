@@ -59,60 +59,9 @@ func CreateCacheDirectory() error {
 	return nil
 }
 
-func RemoveTeXAssets() error {
-	cfgDir, err := config.ConfigDir()
-	assetDir := filepath.Join(cfgDir, "assets")
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	calendar, err := files.NewFile(filepath.Join(assetDir, "calendar.tex"), logging.DefaultLogger())
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	err = calendar.Remove()
-	err = ClearFileDoesNotExistError(err)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	month, err := files.NewFile(filepath.Join(assetDir, "month.tex"), logging.DefaultLogger())
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	err = month.Remove()
-	err = ClearFileDoesNotExistError(err)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	quarter, err := files.NewFile(filepath.Join(assetDir, "quarter.tex"), logging.DefaultLogger())
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	err = quarter.Remove()
-	err = ClearFileDoesNotExistError(err)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	trimester, err := files.NewFile(filepath.Join(assetDir, "trimester.tex"), logging.DefaultLogger())
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	err = trimester.Remove()
-	err = ClearFileDoesNotExistError(err)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	return nil
-}
-
 func CopyAssets(projectPath string) error {
 	defaultCfgDir := filepath.Join(projectPath, "config")
 	imgDir := filepath.Join(projectPath, "assets", "logos", "personal_symbols", "personal_achievement")
-	texDir := filepath.Join(projectPath, "assets", "tex")
 
 	cfgDir, err := config.ConfigDir()
 	if err != nil {
@@ -127,38 +76,6 @@ func CopyAssets(projectPath string) error {
 	err = ClearFileExistsError(err)
 	if err != nil {
 		logging.Warn().Err(err).Str("file", "cap_command_emblem.jpg").Msg("failed to copy asset")
-	}
-
-	logging.Info().Str("file", "calendar.tex").Msg("copying asset")
-	calLaTeX, err := files.NewFile(filepath.Join(texDir, "calendar.tex"), logging.DefaultLogger())
-	_, err = calLaTeX.Copy(destAssetDir)
-	err = ClearFileExistsError(err)
-	if err != nil {
-		logging.Warn().Err(err).Str("file", "calendar.tex").Msg("failed to copy asset")
-	}
-
-	logging.Info().Str("file", "trimester.tex").Msg("copying asset")
-	triLaTeX, err := files.NewFile(filepath.Join(texDir, "trimester.tex"), logging.DefaultLogger())
-	_, err = triLaTeX.Copy(destAssetDir)
-	err = ClearFileExistsError(err)
-
-	logging.Info().Str("file", "quarter.tex").Msg("copying asset")
-	qtrLaTeX, err := files.NewFile(filepath.Join(texDir, "quarter.tex"), logging.DefaultLogger())
-	_, err = qtrLaTeX.Copy(destAssetDir)
-	err = ClearFileExistsError(err)
-	if err != nil {
-		logging.Warn().Err(err).Str("file", "calendar.tex").Msg("failed to copy asset")
-	}
-
-	if err != nil {
-		logging.Warn().Err(err).Str("file", "calendar.tex").Msg("failed to copy asset")
-	}
-	logging.Info().Str("file", "month.tex").Msg("copying asset")
-	monthLaTeX, err := files.NewFile(filepath.Join(texDir, "month.tex"), logging.DefaultLogger())
-	_, err = monthLaTeX.Copy(destAssetDir)
-	err = ClearFileExistsError(err)
-	if err != nil {
-		logging.Warn().Err(err).Str("file", "month.tex").Msg("failed to copy asset")
 	}
 
 	logging.Info().Str("file", "default.yaml").Msg("copying config")
@@ -210,12 +127,6 @@ func main() {
 	err = CreateCacheDirectory()
 	if err != nil {
 		logging.Error().Err(err).Msg("failed to create cache directories")
-		os.Exit(1)
-	}
-
-	err = RemoveTeXAssets()
-	if err != nil {
-		logging.Error().Err(err).Msg("failed to remove TeX assets")
 		os.Exit(1)
 	}
 

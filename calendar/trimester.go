@@ -1,5 +1,9 @@
 package calendar
 
+import (
+	"fmt"
+)
+
 type T int
 
 const (
@@ -7,3 +11,7 @@ const (
 	T2
 	T3
 )
+
+func (t T) String() string {
+	return fmt.Sprintf("T%d", t)
+}

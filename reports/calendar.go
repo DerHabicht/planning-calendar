@@ -15,13 +15,17 @@ import (
 	"github.com/derhabicht/planning-calendar/reports/templates"
 )
 
+const calendarMonthCount = 15
+const trimesterCount = 4 // 15/4 = 4.75, so we round up
+const quarterCount = 5   // 15/3 = 5
+
 type Calendar struct {
 	cfgDir     string
 	calendar   calendar.Calendar
 	minimonths map[date.Date]Minimonth
 }
 
-func NewCalendar(cal calendar.Calendar) Calendar {
+func NewCalendar(cal calendar.Calendar) *Calendar {
 	cfgDir, err := config.ConfigDir()
 	if err != nil {
 		panic(errors.WithStack(err))
@@ -29,7 +33,7 @@ func NewCalendar(cal calendar.Calendar) Calendar {
 
 	minimonths := NewMinimonthList(cal)
 
-	return Calendar{
+	return &Calendar{
 		cfgDir:     cfgDir,
 		calendar:   cal,
 		minimonths: minimonths,
@@ -105,8 +109,16 @@ func (c *Calendar) generateSolsticeTable(latex string) string {
 	return latex
 }
 
-func (c *Calendar) generateMiniMonthCmds(latex string) string {
+func (c *Calendar) generateHolidayTables(latex string) string {
+	ht := NewHolidayTables(c.calendar.HolidayCalendar(), c.calendar.FiscalYear())
 
+	latex = ht.TableByOccurrence(latex)
+	latex = ht.TableByAbbreviation(latex)
+
+	return latex
+}
+
+func (c *Calendar) generateMiniMonthCmds(latex string) string {
 	mm := ""
 	for _, m := range c.minimonths {
 		mm += m.LaTeX()
@@ -118,8 +130,8 @@ func (c *Calendar) generateMiniMonthCmds(latex string) string {
 }
 
 func (c *Calendar) generateTrimesterPages(latex string) string {
-	trimester := c.calendar.FirstWeek().Trimester()
-	for i := 1; i <= 5; i++ {
+	trimester := c.calendar.FirstMonth().FirstWeek().Trimester()
+	for i := 1; i <= trimesterCount; i++ {
 		tr := NewTrimester(trimester, c.minimonths)
 
 		latex = strings.Replace(latex, fmt.Sprintf("+T%d", i), tr.LaTeX(), 1)
@@ -131,8 +143,8 @@ func (c *Calendar) generateTrimesterPages(latex string) string {
 }
 
 func (c *Calendar) generateQuarterPages(latex string) string {
-	quarter := c.calendar.FirstWeek().FyQuarter()
-	for i := 1; i <= 5; i++ {
+	quarter := c.calendar.FirstMonth().FirstWeek().FiscalQuarter()
+	for i := 1; i <= quarterCount; i++ {
 		qt := NewQuarter(quarter, c.minimonths)
 
 		latex = strings.Replace(latex, fmt.Sprintf("+T%d", i), qt.LaTeX(), 1)
@@ -144,7 +156,14 @@ func (c *Calendar) generateQuarterPages(latex string) string {
 }
 
 func (c *Calendar) generateMonthPages(latex string) string {
+	month := c.calendar.FirstMonth()
+	for i := 1; i <= calendarMonthCount; i++ {
+		mo := NewMonth(c.calendar, month, c.minimonths)
+		latex = strings.Replace(latex, fmt.Sprintf("+M%0d", i), mo.LaTeX(), 1)
+		month = month.Next()
+	}
 
+	return latex
 }
 
 func (c *Calendar) LaTeX() string {
@@ -153,6 +172,7 @@ func (c *Calendar) LaTeX() string {
 	latex = c.fillCalParams(latex)
 	latex = c.generateDoomsdayTable(latex)
 	latex = c.generateSolsticeTable(latex)
+	latex = c.generateHolidayTables(latex)
 	latex = c.generateMiniMonthCmds(latex)
 	latex = c.generateTrimesterPages(latex)
 	latex = c.generateQuarterPages(latex)

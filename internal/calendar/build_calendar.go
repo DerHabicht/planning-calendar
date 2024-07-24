@@ -11,7 +11,7 @@ import (
 	"github.com/derhabicht/planning-calendar/calendar/plancal"
 	"github.com/derhabicht/planning-calendar/internal/config"
 	"github.com/derhabicht/planning-calendar/internal/logging"
-	"github.com/derhabicht/planning-calendar/internal/old/reports"
+	"github.com/derhabicht/planning-calendar/reports"
 )
 
 func configureLaTeXCompiler(logger logging.Logger) (*latex.Compiler, error) {
@@ -33,14 +33,11 @@ func configureLaTeXCompiler(logger logging.Logger) (*latex.Compiler, error) {
 }
 
 func generateLaTeX(cal calendar.Calendar, compiler *latex.Compiler, outputFile files.File) error {
-	planningCal, err := reports.NewCalendar(cal)
-	if err != nil {
-		return errors.WithStack(err)
-	}
+	planningCal := reports.NewCalendar(cal)
 
 	assets := []string{config.GetString("cover_logo")}
 
-	err = compiler.GenerateLaTeX(planningCal, outputFile, assets)
+	err := compiler.GenerateLaTeX(planningCal, outputFile, assets)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -49,7 +46,6 @@ func generateLaTeX(cal calendar.Calendar, compiler *latex.Compiler, outputFile f
 }
 
 func BuildCalendar(year int, outputFile files.File, logger logging.Logger) error {
-
 	cal := plancal.NewCalendar(year)
 
 	compiler, err := configureLaTeXCompiler(logger)

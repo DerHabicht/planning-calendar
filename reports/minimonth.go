@@ -13,6 +13,8 @@ import (
 	"github.com/derhabicht/planning-calendar/reports/templates"
 )
 
+const minimonthWeekCount = 6
+
 type Minimonth struct {
 	month        time.Month
 	year         int
@@ -21,8 +23,8 @@ type Minimonth struct {
 }
 
 func NewMinimonthList(calendar calendar.Calendar) map[date.Date]Minimonth {
+	minimonths := make(map[date.Date]Minimonth)
 
-	var minimonths map[date.Date]Minimonth
 	endDate := date.New(calendar.FiscalYear()+2, time.June, 1)
 	d := date.New(calendar.FiscalYear()-1, time.September, 1)
 	for d.Before(endDate) {
@@ -92,7 +94,7 @@ func (mm *Minimonth) generateWeekHeader(latex string) string {
 
 func (mm *Minimonth) generateWeeks(latex string) string {
 	d := date.New(mm.year, mm.month, 1)
-	for week := 1; week <= 6; week++ {
+	for week := 1; week <= minimonthWeekCount; week++ {
 		templ := templates.MinimonthWeekTemplate
 		if d.Month() == mm.month {
 			_, isoWeek := d.ISOWeek()
